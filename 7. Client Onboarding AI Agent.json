@@ -1,0 +1,460 @@
+{
+  "name": "7. Client Onboarding AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Client Onboarding AI Agent\n\n**1. Send Welcome Email\n2. Summarize Client Profile in Database**",
+        "height": 128,
+        "width": 384,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        -400
+      ],
+      "id": "29f781a2-a82b-4ec5-9e5e-f408006d2bac",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "formTitle": "Clinet Onboarding",
+        "formDescription": "Please fill out the required fields.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "placeholder": "Your Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "Your Email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Sector",
+              "placeholder": "E.g. Finance",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "=What are you hoping to achieve through our partnership in the next three months?",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Anything else we should know?"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        48
+      ],
+      "id": "b9b3347e-678d-4c0c-a553-2ad8ad44d80d",
+      "name": "On form submission",
+      "webhookId": "3e9749e6-f47c-4202-8755-b82c7e9012c4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Agent: Conversational Agent\n\nCan you please create a warm welcome email for a new client based on their information. We want the email to be concise and friendly, but also professional. It should be personalized to them based on their industry and what they are hoping to get out of our partnership. Here is information about the client:\n\nName: {{ $json.Name }}    \nCompany Sector: {{ $json['Company Sector'] }}  \nHoping to achieve: {{ $json[\"What are you hoping to achieve through our partnership in the next three months?\"] }}\n\nMake sure to always sign off the email from \"Sachin Savkare\" the company is \"Codebasics Automation Corp\" and his position is \"VP of Internal Relations\". Don't throw in variables for the sign off if information is unknown, we don't ever want [Your Name], or [Your Contact Information], etc.\n\nOutput this information into 3 separate fields:  \nSubject: The email's subject  \nBody: The email's body  \nEmail: {{ $json.Email }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        -112
+      ],
+      "id": "e804ce14-93f0-49d9-91fe-e8995b22583e",
+      "name": "Welcome Message for Client Onboarding"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        32
+      ],
+      "id": "f51423ef-cb65-4713-b821-b13fd233ee59",
+      "name": "gpt-4.1-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Parse the JSON query and output the parameters seperately\n\nSubject\nBody\nEmail",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.output }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        256,
+        -112
+      ],
+      "id": "632480b0-76a5-480f-9507-3375e6d98950",
+      "name": "Parse JSON query",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.message.content.Email }}",
+        "subject": "={{ $json.message.content.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.message.content.Body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        -112
+      ],
+      "id": "ef5cf6b8-f1a7-469c-b6b3-fd089c62ff50",
+      "name": "Send Email",
+      "webhookId": "3e76f38c-1e45-4f60-bf71-f7a989ade766",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eCK4EFn7FCxilJEq",
+          "name": "Gmail AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Take the client information provided and create a summary of their client profile. Here is a client's information:\n\nName: {{ $json.Name }}\nCompany Sector: {{ $json['Company Sector'] }}\nWhat are they hoping to achieve with us: {{ $json['What are you hoping to achieve through our partnership in the next three months?'] }}\nAdditional Information: {{ $json['Anything else we should know?'] }}\n\nOutput the following parameters separately:  \nName:  {{ $json.Name }}\nEmail: {{ $json.Email }} \nSummary: Summary of the client based on the information",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        224
+      ],
+      "id": "aa355e44-2bf0-42a0-894d-7bb16e48a6fb",
+      "name": "Summarize Client Profile"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        368
+      ],
+      "id": "391e369f-de9e-4951-ad7a-84d887d5bccc",
+      "name": "gpt-4.1-mini1",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1GqaDhirEs-U-rkaLi5_CJUqbDeth82EBKPqfZyMUMcg",
+          "mode": "list",
+          "cachedResultName": "7. New Clients Onboarding Profile Summary",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GqaDhirEs-U-rkaLi5_CJUqbDeth82EBKPqfZyMUMcg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GqaDhirEs-U-rkaLi5_CJUqbDeth82EBKPqfZyMUMcg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.message.content.Name }}",
+            "Email": "={{ $json.message.content.Email }}",
+            "Summary": "={{ $json.message.content.Summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        224
+      ],
+      "id": "ef58be3a-e9d0-44a7-a8f4-57437d0229f6",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "r5dJyl6N7Nvh7Os3",
+          "name": "Google Sheets AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Welcome Message for Client Onboarding",
+        "height": 224,
+        "width": 784,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -176
+      ],
+      "id": "7446e2bc-51c8-406c-adec-c5deb1eaafaa",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Summarize Client Profile",
+        "height": 224,
+        "width": 784,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        160
+      ],
+      "id": "10baa68d-8278-4c03-ac29-c5ce5d08c31a",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.output }}"
+            },
+            {
+              "content": "=Parse the JSON query into 3 seperate fields:\n\nName\nEmail\nSummary",
+              "role": "system"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        256,
+        224
+      ],
+      "id": "4a8d45f9-06df-431c-862d-2911101f92c5",
+      "name": "Parse the JSON query",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "json": {
+          "Name": "Sachin Savkare",
+          "Email": "sachinsavkare08@gmail.com",
+          "Company Sector": "Finance",
+          "What are you hoping to achieve through our partnership in the next three months?": "Increase revenue by 217%",
+          "Anything else we should know?": "I dont like to be contacted after 6pm or on weekends",
+          "submittedAt": "2025-09-27T11:22:41.909-04:00",
+          "formMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Welcome Message for Client Onboarding",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize Client Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.1-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Welcome Message for Client Onboarding",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welcome Message for Client Onboarding": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON query": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Client Profile": {
+      "main": [
+        [
+          {
+            "node": "Parse the JSON query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.1-mini1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Client Profile",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse the JSON query": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "29ed72ff-ef58-41cc-bb8f-48cf419e903b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91f42292365f2736b62ea45ddfd531a5d9a185f2bc4a363bfb1ae1188ac76851"
+  },
+  "id": "nqcAwfsQjxEEcIog",
+  "tags": []
+}
